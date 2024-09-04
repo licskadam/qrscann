@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Scanner</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+        }
+
+        #preview {
+            display: none;
+            width: 300px;
+            height: 300px;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+
+        input {
+            padding: 10px;
+            margin-top: 20px;
+            width: 300px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="start-scan">Scan QR Code</button>
+    <input type="text" id="qr-result" placeholder="QR Code Result" readonly>
+    <canvas id="preview" style="display:none;"></canvas>
+
+    <script>
+        const startScanButton = document.getElementById('start-scan');
+        const qrResultInput = document.getElementById('qr-result');
+        const canvasElement = document.getElementById('preview');
+        const canvas = canvasElement.getContext("2d");
+
+        let video = document.createElement("video");
+
+        startScanButton.addEventListener('click', () => {
+            // Request camera access
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(stream => {
+                video.srcObject = stream;
+                video.setAttribute("playsinline", true); // Required to tell iOS Safari not to go fullscreen
+                video.play();
+                requestAnimationFrame(tick);
+            })
+            .catch(err => {
+                console.error("Camera access denied or not supported: ", err);
+                alert("Camera access is required for scanning QR codes.");
+            });
+        });
+
+        function tick() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvasElement.style.display = "block";
+                canvasElement.height = video.videoHeight;
+                canvasElement.width = video.videoWidth;
+                canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+
+                const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                const qrCode = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+
+                if (qrCode) {
+                    qrResultInput.value = qrCode.data; // Set the QR code value in the input field
+                    stopVideoStream();
+                }
+            }
+            requestAnimationFrame(tick);
+        }
+
+        function stopVideoStream() {
+            video.srcObject.getTracks().forEach(track => track.stop());
+            canvasElement.style.display = "none"; // Hide the canvas after scanning
+        }
+
+    </script>
+
+</body>
+</html>
