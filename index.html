@@ -4,95 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Scanner</title>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            flex-direction: column;
+        #videoElement {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border: 1px solid black;
+            margin-bottom: 10px;
         }
-
-        #preview {
-            display: none;
-            width: 300px;
-            height: 300px;
-            margin-top: 20px;
-            border: 1px solid #ccc;
-        }
-
-        input {
-            padding: 10px;
-            margin-top: 20px;
-            width: 300px;
+        #result {
+            width: 100%;
+            max-width: 400px;
+            padding: 8px;
             font-size: 16px;
-        }
-
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
         }
     </style>
 </head>
 <body>
+    <h1>QR Code Scanner</h1>
+    <video id="videoElement"></video>
+    <br>
+    <input type="text" id="result" placeholder="Scanned QR code will appear here">
+    <br><br>
+    <button id="startButton">Start Scanner</button>
 
-    <button id="start-scan">Scan QR Code</button>
-    <input type="text" id="qr-result" placeholder="QR Code Result" readonly>
-    <canvas id="preview" style="display:none;"></canvas>
-
+    <!-- ZXing library -->
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script>
-        const startScanButton = document.getElementById('start-scan');
-        const qrResultInput = document.getElementById('qr-result');
-        const canvasElement = document.getElementById('preview');
-        const canvas = canvasElement.getContext("2d");
+        const videoElement = document.getElementById('videoElement');
+        const resultElement = document.getElementById('result');
+        const startButton = document.getElementById('startButton');
 
-        let video = document.createElement("video");
+        let selectedDeviceId;
 
-        startScanButton.addEventListener('click', () => {
-            // Request camera access
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-            .then(stream => {
-                video.srcObject = stream;
-                video.setAttribute("playsinline", true); // Required to tell iOS Safari not to go fullscreen
-                video.play();
-                requestAnimationFrame(tick);
-            })
-            .catch(err => {
-                console.error("Camera access denied or not supported: ", err);
-                alert("Camera access is required for scanning QR codes.");
-            });
-        });
+        // Function to start the QR code scanner
+        async function startScanner() {
+            const codeReader = new ZXing.BrowserMultiFormatReader();
 
-        function tick() {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                canvasElement.style.display = "block";
-                canvasElement.height = video.videoHeight;
-                canvasElement.width = video.videoWidth;
-                canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+            // List video input devices
+            const devices = await codeReader.listVideoInputDevices();
 
-                const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
-                const qrCode = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: "dontInvert",
+            if (devices.length > 0) {
+                selectedDeviceId = devices[0].deviceId;
+
+                // Start decoding from the chosen device
+                codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
+                    if (result) {
+                        resultElement.value = result.text;
+                    }
+                    if (err && !(err instanceof ZXing.NotFoundException)) {
+                        console.error(err);
+                    }
                 });
-
-                if (qrCode) {
-                    qrResultInput.value = qrCode.data; // Set the QR code value in the input field
-                    stopVideoStream();
-                }
+            } else {
+                alert('No video devices found');
             }
-            requestAnimationFrame(tick);
         }
 
-        function stopVideoStream() {
-            video.srcObject.getTracks().forEach(track => track.stop());
-            canvasElement.style.display = "none"; // Hide the canvas after scanning
-        }
-
+        // Start scanner on button click
+        startButton.addEventListener('click', startScanner);
     </script>
-
 </body>
 </html>
