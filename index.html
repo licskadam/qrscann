@@ -19,6 +19,9 @@
             padding: 8px;
             font-size: 16px;
         }
+        #cameraSelect {
+            display: none; /* Hidden by default */
+        }
     </style>
 </head>
 <body>
@@ -26,6 +29,9 @@
     <video id="videoElement"></video>
     <br>
     <input type="text" id="result" placeholder="Scanned QR code will appear here">
+    <br><br>
+    <button id="selectCameraButton">Select Camera</button>
+    <select id="cameraSelect"></select>
     <br><br>
     <button id="startButton">Start Scanner</button>
 
@@ -35,34 +41,65 @@
         const videoElement = document.getElementById('videoElement');
         const resultElement = document.getElementById('result');
         const startButton = document.getElementById('startButton');
+        const selectCameraButton = document.getElementById('selectCameraButton');
+        const cameraSelect = document.getElementById('cameraSelect');
 
-        // Function to start the QR code scanner with selected camera
-        async function startScanner() {
+        let selectedDeviceId = null; // Variable to store the selected camera ID
+
+        // Function to list and select a camera
+        async function selectCamera() {
             const codeReader = new ZXing.BrowserMultiFormatReader();
 
             try {
                 const devices = await codeReader.listVideoInputDevices();
 
-                if (devices.length === 0) {
-                    alert("No video devices found");
+                // Filter out non-rear cameras
+                const rearCameras = devices.filter(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear'));
+
+                if (rearCameras.length === 0) {
+                    alert("No rear cameras found");
                     return;
                 }
 
-                // Create a list of camera labels
-                const cameraOptions = devices.map((device, index) => `${index + 1}: ${device.label || 'Camera ' + (index + 1)}`).join('\n');
-                const selectedIndex = prompt(`Select a camera:\n\n${cameraOptions}`);
+                // Populate the select dropdown with rear cameras
+                cameraSelect.innerHTML = ''; // Clear previous options
+                rearCameras.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Camera ${index + 1}`;
+                    cameraSelect.appendChild(option);
+                });
 
-                if (selectedIndex === null || isNaN(selectedIndex) || selectedIndex < 1 || selectedIndex > devices.length) {
-                    alert("Invalid selection");
-                    return;
-                }
+                cameraSelect.style.display = 'block'; // Show the select dropdown
 
-                const selectedDeviceId = devices[selectedIndex - 1].deviceId;
+                // Listen for change event to save the selected camera ID
+                cameraSelect.addEventListener('change', () => {
+                    selectedDeviceId = cameraSelect.value;
+                });
 
+                // Automatically select the first camera
+                cameraSelect.value = rearCameras[0].deviceId;
+                selectedDeviceId = cameraSelect.value;
+
+            } catch (error) {
+                alert(`Error listing cameras: ${error.message}`);
+            }
+        }
+
+        // Function to start the QR code scanner with the selected camera
+        async function startScanner() {
+            if (!selectedDeviceId) {
+                alert("Please select a camera first.");
+                return;
+            }
+
+            const codeReader = new ZXing.BrowserMultiFormatReader();
+
+            try {
                 // Show the video element when starting the scanner
                 videoElement.style.display = 'block';
 
-                // Start decoding from the chosen device
+                // Start decoding from the selected device
                 codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
                     if (result) {
                         resultElement.value = result.text;
@@ -87,7 +124,8 @@
             }
         }
 
-        // Start scanner on button click
+        // Attach event listeners
+        selectCameraButton.addEventListener('click', selectCamera);
         startButton.addEventListener('click', startScanner);
     </script>
 </body>
