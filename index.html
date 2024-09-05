@@ -40,7 +40,7 @@
 
         // Function to start the QR code scanner
         async function startScanner() {
-            videoElement.show();
+            
             const codeReader = new ZXing.BrowserMultiFormatReader();
 
             // List video input devices
@@ -67,7 +67,10 @@
         }
 
         // Start scanner on button click
-        startButton.addEventListener('click', startScanner);
+        startButton.on('click', function(){
+            videoElement.show();
+            startScanner()
+        });
     </script>
 </body>
 </html>
