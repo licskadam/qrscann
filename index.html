@@ -36,17 +36,28 @@
         const resultElement = document.getElementById('result');
         const startButton = document.getElementById('startButton');
 
-        // Function to start the QR code scanner with the environment camera
+        // Function to start the QR code scanner with selected camera
         async function startScanner() {
             const codeReader = new ZXing.BrowserMultiFormatReader();
 
             try {
                 const devices = await codeReader.listVideoInputDevices();
 
-                // Find the device with the label indicating it's the environment camera
-                const environmentCamera = devices.find(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear'));
+                if (devices.length === 0) {
+                    alert("No video devices found");
+                    return;
+                }
 
-                const selectedDeviceId = environmentCamera ? environmentCamera.deviceId : devices[0].deviceId;
+                // Create a list of camera labels
+                const cameraOptions = devices.map((device, index) => `${index + 1}: ${device.label || 'Camera ' + (index + 1)}`).join('\n');
+                const selectedIndex = prompt(`Select a camera:\n\n${cameraOptions}`);
+
+                if (selectedIndex === null || isNaN(selectedIndex) || selectedIndex < 1 || selectedIndex > devices.length) {
+                    alert("Invalid selection");
+                    return;
+                }
+
+                const selectedDeviceId = devices[selectedIndex - 1].deviceId;
 
                 // Show the video element when starting the scanner
                 videoElement.style.display = 'block';
