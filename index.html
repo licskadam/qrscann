@@ -11,6 +11,7 @@
             height: auto;
             border: 1px solid black;
             margin-bottom: 10px;
+            display:none;
         }
         #result {
             width: 100%;
@@ -37,6 +38,7 @@
 
         // Function to start the QR code scanner with the environment camera
         async function startScanner() {
+            videoElement.show();
             const codeReader = new ZXing.BrowserMultiFormatReader();
 
             try {
@@ -51,13 +53,16 @@
                 codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
                     if (result) {
                         resultElement.value = result.text;
+                        videoElement.hide();
                     }
                     if (err && !(err instanceof ZXing.NotFoundException)) {
-                        console.error(err);
+                        alert("Error starting scanner: ", err);
+                        videoElement.hide();
                     }
                 });
             } catch (error) {
-                console.error("Error starting scanner: ", error);
+                alert("Error starting scanner: ", error);
+                videoElement.hide();
             }
         }
 
