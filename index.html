@@ -49,11 +49,14 @@
 
                 // Start decoding from the chosen device
                 codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
+                    videoElement.show();
                     if (result) {
                         resultElement.value = result.text;
+                        videoElement.hide();
                     }
                     if (err && !(err instanceof ZXing.NotFoundException)) {
                         console.error(err);
+                        videoElement.hide();
                     }
                 });
             } else {
