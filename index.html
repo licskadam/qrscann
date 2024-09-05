@@ -6,12 +6,12 @@
     <title>QR Code Scanner</title>
     <style>
         #videoElement {
+            display: none; /* Hidden by default */
             width: 100%;
             max-width: 400px;
             height: auto;
             border: 1px solid black;
             margin-bottom: 10px;
-            display:none;
         }
         #result {
             width: 100%;
@@ -38,7 +38,6 @@
 
         // Function to start the QR code scanner with the environment camera
         async function startScanner() {
-            videoElement.show();
             const codeReader = new ZXing.BrowserMultiFormatReader();
 
             try {
@@ -49,20 +48,31 @@
 
                 const selectedDeviceId = environmentCamera ? environmentCamera.deviceId : devices[0].deviceId;
 
+                // Show the video element when starting the scanner
+                videoElement.style.display = 'block';
+
                 // Start decoding from the chosen device
                 codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
                     if (result) {
                         resultElement.value = result.text;
-                        videoElement.hide();
+                        stopScanner(codeReader);
                     }
                     if (err && !(err instanceof ZXing.NotFoundException)) {
-                        alert("Error starting scanner: ", err);
-                        videoElement.hide();
+                        alert(`Error: ${err.message}`);
+                        stopScanner(codeReader);
                     }
                 });
             } catch (error) {
-                alert("Error starting scanner: ", error);
-                videoElement.hide();
+                alert(`Error starting scanner: ${error.message}`);
+                stopScanner();
+            }
+        }
+
+        // Function to stop the scanner and hide the video element
+        function stopScanner(codeReader) {
+            videoElement.style.display = 'none';
+            if (codeReader) {
+                codeReader.reset();
             }
         }
 
