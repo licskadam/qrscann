@@ -45,10 +45,24 @@
         const cameraSelect = document.getElementById('cameraSelect');
 
         let selectedDeviceId = null; // Variable to store the selected camera ID
+        let codeReader = null; // Variable to store the QR code reader instance
+
+        // Function to stop the scanner and hide the video element
+        function stopScanner() {
+            videoElement.style.display = 'none';
+            if (codeReader) {
+                codeReader.reset(); // Stop the video stream
+            }
+        }
 
         // Function to list and select a camera
         async function selectCamera() {
-            const codeReader = new ZXing.BrowserMultiFormatReader();
+            // If the camera is already on, stop the current stream
+            stopScanner();
+
+            if (!codeReader) {
+                codeReader = new ZXing.BrowserMultiFormatReader();
+            }
 
             try {
                 const devices = await codeReader.listVideoInputDevices();
@@ -72,14 +86,14 @@
 
                 cameraSelect.style.display = 'block'; // Show the select dropdown
 
-                // Listen for change event to save the selected camera ID
-                cameraSelect.addEventListener('change', () => {
-                    selectedDeviceId = cameraSelect.value;
-                });
-
                 // Automatically select the first camera
                 cameraSelect.value = rearCameras[0].deviceId;
                 selectedDeviceId = cameraSelect.value;
+
+                // Update the selected device ID when a new camera is selected
+                cameraSelect.addEventListener('change', () => {
+                    selectedDeviceId = cameraSelect.value;
+                });
 
             } catch (error) {
                 alert(`Error listing cameras: ${error.message}`);
@@ -93,8 +107,6 @@
                 return;
             }
 
-            const codeReader = new ZXing.BrowserMultiFormatReader();
-
             try {
                 // Show the video element when starting the scanner
                 videoElement.style.display = 'block';
@@ -103,24 +115,16 @@
                 codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
                     if (result) {
                         resultElement.value = result.text;
-                        stopScanner(codeReader);
+                        stopScanner();
                     }
                     if (err && !(err instanceof ZXing.NotFoundException)) {
                         alert(`Error: ${err.message}`);
-                        stopScanner(codeReader);
+                        stopScanner();
                     }
                 });
             } catch (error) {
                 alert(`Error starting scanner: ${error.message}`);
                 stopScanner();
-            }
-        }
-
-        // Function to stop the scanner and hide the video element
-        function stopScanner(codeReader) {
-            videoElement.style.display = 'none';
-            if (codeReader) {
-                codeReader.reset();
             }
         }
 
