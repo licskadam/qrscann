@@ -40,6 +40,7 @@
 
         // Function to start the QR code scanner
         async function startScanner() {
+            videoElement.show();
             const codeReader = new ZXing.BrowserMultiFormatReader();
 
             // List video input devices
@@ -50,7 +51,7 @@
 
                 // Start decoding from the chosen device
                 codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
-                    videoElement.show();
+                    
                     if (result) {
                         resultElement.value = result.text;
                         videoElement.hide();
