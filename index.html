@@ -34,6 +34,7 @@
     <select id="cameraSelect"></select>
     <br><br>
     <button id="startButton">Start Scanner</button>
+    <button id="stopButton">Stop Scanning</button>
 
     <!-- ZXing library -->
     <script src="https://unpkg.com/@zxing/library@latest"></script>
@@ -43,6 +44,7 @@
         const startButton = document.getElementById('startButton');
         const selectCameraButton = document.getElementById('selectCameraButton');
         const cameraSelect = document.getElementById('cameraSelect');
+        const stopButton = document.getElementById('stopButton');
 
         let selectedDeviceId = null; // Variable to store the selected camera ID
         let codeReader = null; // Variable to store the QR code reader instance
@@ -131,6 +133,7 @@
         // Attach event listeners
         selectCameraButton.addEventListener('click', selectCamera);
         startButton.addEventListener('click', startScanner);
+        stopButton.addEventListener('click', stopScanner);
     </script>
 </body>
 </html>
