@@ -69,16 +69,34 @@
             try {
                 const devices = await codeReader.listVideoInputDevices();
 
-                // Filter out non-rear cameras
-                const rearCameras = devices.filter(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear'));
+                // Check if the browser supports 'getUserMedia' API to determine 'facingMode'
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    videoStream.getTracks().forEach(track => track.stop());
+                }
+
+                // Populate the select dropdown with rear-facing cameras
+                cameraSelect.innerHTML = ''; // Clear previous options
+                let rearCameras = [];
+                
+                for (let device of devices) {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { deviceId: device.deviceId }
+                    });
+                    const track = stream.getVideoTracks()[0];
+                    if (track.getSettings().facingMode === 'environment') {
+                        rearCameras.push(device);
+                        track.stop();
+                    } else {
+                        track.stop();
+                    }
+                }
 
                 if (rearCameras.length === 0) {
                     alert("No rear cameras found");
                     return;
                 }
 
-                // Populate the select dropdown with rear cameras
-                cameraSelect.innerHTML = ''; // Clear previous options
                 rearCameras.forEach((device, index) => {
                     const option = document.createElement('option');
                     option.value = device.deviceId;
