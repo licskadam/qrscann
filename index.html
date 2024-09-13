@@ -102,11 +102,18 @@
             }
 
             try {
-                // Show the video element when starting the scanner
+                // Request permission to use the camera
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        deviceId: { exact: selectedDeviceId }
+                    }
+                });
+
+                videoElement.srcObject = stream;
                 videoElement.style.display = 'block';
 
                 // Start decoding from the selected device
-                codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
+                codeReader.decodeFromStream(stream, videoElement, (result, err) => {
                     if (result) {
                         resultElement.value = result.text;
                         stopScanner();
