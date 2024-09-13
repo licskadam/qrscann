@@ -5,12 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Scanner</title>
     <style>
-        #videoElement {
-            display: none; /* Hidden by default */
+        #reader {
             width: 100%;
             max-width: 400px;
             height: auto;
-            border: 1px solid black;
+            display: none; /* Hidden by default */
             margin-bottom: 10px;
         }
         #result {
@@ -23,10 +22,12 @@
             display: none; /* Hidden by default */
         }
     </style>
+    <!-- Include the html5-qrcode library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
     <h1>QR Code Scanner</h1>
-    <video id="videoElement"></video>
+    <div id="reader"></div>
     <br>
     <input type="text" id="result" placeholder="Scanned QR code will appear here">
     <br><br>
@@ -36,24 +37,24 @@
     <button id="startButton">Start Scanner</button>
     <button id="stopButton">Stop Scanning</button>
 
-    <!-- ZXing library -->
-    <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script>
-        const videoElement = document.getElementById('videoElement');
+        const readerElement = document.getElementById('reader');
         const resultElement = document.getElementById('result');
-        const startButton = document.getElementById('startButton');
         const selectCameraButton = document.getElementById('selectCameraButton');
         const cameraSelect = document.getElementById('cameraSelect');
+        const startButton = document.getElementById('startButton');
         const stopButton = document.getElementById('stopButton');
 
         let selectedDeviceId = null; // Variable to store the selected camera ID
-        let codeReader = null; // Variable to store the QR code reader instance
+        let html5QrCode = null;
 
-        // Function to stop the scanner and hide the video element
+        // Function to stop the scanner and hide the reader element
         function stopScanner() {
-            videoElement.style.display = 'none';
-            if (codeReader) {
-                codeReader.reset(); // Stop the video stream
+            readerElement.style.display = 'none';
+            if (html5QrCode) {
+                html5QrCode.stop().catch(err => {
+                    alert(`Error stopping scanner: ${err.message}`);
+                });
             }
         }
 
@@ -62,18 +63,18 @@
             // If the camera is already on, stop the current stream
             stopScanner();
 
-            if (!codeReader) {
-                codeReader = new ZXing.BrowserMultiFormatReader();
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
             }
 
             try {
-                const devices = await codeReader.listVideoInputDevices();
+                const devices = await Html5Qrcode.getCameras();
 
                 // Populate the select dropdown with all available cameras
                 cameraSelect.innerHTML = ''; // Clear previous options
                 devices.forEach((device, index) => {
                     const option = document.createElement('option');
-                    option.value = device.deviceId;
+                    option.value = device.id;
                     option.text = device.label || `Camera ${index + 1}`;
                     cameraSelect.appendChild(option);
                 });
@@ -81,7 +82,7 @@
                 cameraSelect.style.display = 'block'; // Show the select dropdown
 
                 // Automatically select the first camera
-                cameraSelect.value = devices[0].deviceId;
+                cameraSelect.value = devices[0].id;
                 selectedDeviceId = cameraSelect.value;
 
                 // Update the selected device ID when a new camera is selected
@@ -102,27 +103,22 @@
             }
 
             try {
-                // Request permission to use the camera
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        deviceId: { exact: selectedDeviceId }
-                    }
-                });
+                // Show the reader element when starting the scanner
+                readerElement.style.display = 'block';
 
-                videoElement.srcObject = stream;
-                videoElement.style.display = 'block';
+                // Start the QR code scanner
+                await html5QrCode.start(
+                    { deviceId: { exact: selectedDeviceId } }, 
+                    { fps: 10, qrbox: 250 }, 
+                    qrCodeMessage => {
+                        resultElement.value = qrCodeMessage;
+                        stopScanner();
+                    },
+                    errorMessage => {
+                        console.warn(`QR code scanning error: ${errorMessage}`);
+                    }
+                );
 
-                // Start decoding from the selected device
-                codeReader.decodeFromStream(stream, videoElement, (result, err) => {
-                    if (result) {
-                        resultElement.value = result.text;
-                        stopScanner();
-                    }
-                    if (err && !(err instanceof ZXing.NotFoundException)) {
-                        alert(`Error: ${err.message}`);
-                        stopScanner();
-                    }
-                });
             } catch (error) {
                 alert(`Error starting scanner: ${error.message}`);
                 stopScanner();
